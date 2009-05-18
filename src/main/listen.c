@@ -29,6 +29,10 @@ RCSID("$Id$")
 #include <freeradius-devel/modpriv.h>
 #include <freeradius-devel/rad_assert.h>
 
+#ifdef WITH_UDPFROMTO
+#include <freeradius-devel/udpfromto.h>
+#endif
+
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #endif
