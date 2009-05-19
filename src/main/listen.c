@@ -497,6 +497,11 @@ static int listen_bind(rad_listen_t *this)
 			break;
 #endif
 
+#ifdef WITH_COA
+		case RAD_LISTEN_COA:
+			sock->port = PW_COA_UDP_PORT;
+			break;
+#endif
 		default:
 			radlog(L_ERR, "ERROR: Non-fatal internal sanity check failed in bind.");
 			return -1;
@@ -720,6 +725,9 @@ rad_listen_t *listen_alloc(const char *type_name)
 #endif
 #ifdef WITH_DHCP
 	case RAD_LISTEN_DHCP:
+#endif
+#ifdef WITH_COA
+	case RAD_LISTEN_COA:
 #endif
 		this->data = rad_malloc(sizeof(listen_socket_t));
 		memset(this->data, 0, sizeof(listen_socket_t));

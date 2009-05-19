@@ -115,7 +115,6 @@ static int proxy_socket_recv(rad_listen_t *listener,
 	case PW_DISCONNECT_NAK:
 	case PW_COA_ACK:
 	case PW_COA_NAK:
-		fun = rad_coa_reply; /* run NEW function */
 		break;
 #endif
 
@@ -140,10 +139,20 @@ static int proxy_socket_recv(rad_listen_t *listener,
 	rad_assert(request->process != NULL);
 
 #ifdef WITH_COA
-	if (!fun)
+	/*
+	 *	Distinguish proxied CoA requests from ones we
+	 *	originate.  If we've proxied a DIFFERENT packet type
+	 *	than the original, then it MUST be a CoA packet.  In
+	 *	that case, we process it as a CoA reply packet, rather
+	 *	than re-running the original method.
+	 */
+	if (request->packet->code != request->proxy->code) {
+		rad_assert((request->proxy->code == PW_COA_REQUEST) ||
+			   (request->proxy->code == PW_DISCONNECT_REQUEST));
+		fun = rad_coa_reply; /* run NEW function */
+	} else
 #endif
-	  fun = request->process; /* re-run original function */
-	*pfun = fun;
+	*pfun = request->process; /* re-run original function */
 	*prequest = request;
 
 	return 1;
