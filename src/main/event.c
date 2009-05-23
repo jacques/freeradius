@@ -282,7 +282,7 @@ static int proxy_id_alloc(REQUEST *request, RADIUS_PACKET *packet)
 	 *	it to the tail of the list of listeners.  With
 	 *	some care, this can be thread-safe.
 	 */
-	proxy_listener = proxy_new_listener(&packet->src_ipaddr);
+	proxy_listener = proxy_new_listener(&packet->src_ipaddr, FALSE);
 	if (!proxy_listener) {
 		RDEBUG2("ERROR: Failed to create a new socket for proxying requests.");
 		return 0;
@@ -759,7 +759,6 @@ static void ping_home_server(void *ctx)
 	VALUE_PAIR *vp;
 
 	if (home->state == HOME_STATE_ALIVE) {
-		radlog(L_INFO, "Suspicious proxy state... continuing");
 		return;
 	}
 
@@ -3003,6 +3002,11 @@ REQUEST *received_proxy_response(RADIUS_PACKET *packet)
 	 *	Having it here means that late or duplicate proxy
 	 *	replies no longer get the home server marked as
 	 *	"alive".  This might be good for stability, though.
+	 *
+	 *	FIXME: Do we really want to do this whenever we
+	 *	receive a packet?  Setting this here means that we
+	 *	mark it alive on *any* packet, even if it's lost all
+	 *	of the *other* packets in the last 10s.
 	 */
 	request->home_server->state = HOME_STATE_ALIVE;
 	
