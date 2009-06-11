@@ -1941,8 +1941,8 @@ static int proxy_to_virtual_server(REQUEST *request)
 	rad_assert(request->process != NULL);
 
 	RDEBUG2(">>> Sending proxied request internally to virtual server.");
-	radius_handle_request(fake, request->process);
-	RDEBUG2("<<< Received proxied response from internal virtual server.");
+	radius_handle_request(fake, fun);
+	RDEBUG2("<<< Received proxied response code %d from internal virtual server.", fake->reply->code);
 
 	request->proxy_reply = fake->reply;
 	fake->reply = NULL;
