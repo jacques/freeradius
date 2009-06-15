@@ -1941,27 +1941,37 @@ static int proxy_to_virtual_server(REQUEST *request)
 	rad_assert(request->process != NULL);
 
 	RDEBUG2(">>> Sending proxied request internally to virtual server.");
-	radius_handle_request(fake, fun);
+	radius_handle_request(fake, fake->process);
 	RDEBUG2("<<< Received proxied response code %d from internal virtual server.", fake->reply->code);
 
-	request->proxy_reply = fake->reply;
-	fake->reply = NULL;
+	if (fake->reply->code != 0) {
+		request->proxy_reply = fake->reply;
+		fake->reply = NULL;
+	} else {
+		/*
+		 *	There was no response
+		 */
+		setup_post_proxy_fail(request);
+	}
 
 	ev_request_free(&fake);
 
 	process_proxy_reply(request);
 
-	if (request->server) RDEBUG("server %s {",
-				    request->server != NULL ?
-				    request->server : ""); 
 	/*
-	 *	And do all of this again...
+	 *	Process it through the normal section again, but ONLY
+	 *	if we received a proxy reply..
 	 */
-	request->process(request);
-
-	if (request->server) RDEBUG("} # server %s",
-				    request->server != NULL ?
-				    request->server : "");
+	if (!request->proxy_reply) {
+		if (request->server) RDEBUG("server %s {",
+					    request->server != NULL ?
+					    request->server : ""); 
+		request->process(request);
+		
+		if (request->server) RDEBUG("} # server %s",
+					    request->server != NULL ?
+					    request->server : "");
+	}
 
 	return 2;		/* success, but NOT '1' !*/
 }
