@@ -11,7 +11,7 @@
 
 .PHONY: all clean install
 
-SUBDIRS		= $(LTDL_SUBDIRS) src raddb scripts doc
+SUBDIRS		= $(LTDL_SUBDIRS) $(wildcard src raddb scripts doc)
 WHAT_TO_MAKE	= all
 
 all:
