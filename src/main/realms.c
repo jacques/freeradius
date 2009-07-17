@@ -1910,18 +1910,9 @@ home_server *home_server_ldb(const char *realmname,
 		if (!home) continue;
 
 		/*
-		 *	Remember zombies, but skip them.  If there are
-		 *	no live servers, then we will use a zombie one.
+		 *	Skip dead home servers.
 		 */
-		if (home->state == HOME_STATE_ZOMBIE) {
-			zombie = home;
-			continue;
-		}
-
-		/*
-		 *	Skip zombie && dead home servers.
-		 */
-		if (home->state != HOME_STATE_ALIVE) {
+		if (home->state == HOME_STATE_IS_DEAD) {
 			continue;
 		}
 
@@ -1944,6 +1935,16 @@ home_server *home_server_ldb(const char *realmname,
 			continue;
 		}
 #endif
+
+		/*
+		 *	It's zombie, so we remember the first zombie
+		 *	we find, but we don't mark it as a "live"
+		 *	server.
+		 */
+		if (home->state == HOME_STATE_ZOMBIE) {
+			if (!zombie) zombie = home;
+			continue;
+		}
 
 		/*
 		 *	We've found the first "live" one.  Use that.
