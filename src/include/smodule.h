@@ -64,6 +64,9 @@ struct rad_listen_t {
 	int		fd;
 	const char	*server;
 	int		status;
+#ifdef WITH_TCP
+	int		count;
+#endif
 
 	const struct frs_module_t *frs;
 	rad_listen_recv_t recv;
