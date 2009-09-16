@@ -1414,7 +1414,9 @@ rad_listen_t *proxy_new_tcp_listener(home_server *home)
 	sock->home = home;
 	sock->home->num_connections++;
 
+#if 0
 	this->recv = proxy_socket_tcp_recv;
+#endif
 
 	/*
 	 *	Tell the event handler about the new socket.

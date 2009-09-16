@@ -158,6 +158,67 @@ static int proxy_socket_recv(rad_listen_t *listener,
 	return 1;
 }
 
+#ifdef WITH_TCP
+/*
+ *	Recieve packets from a proxy socket.
+ */
+static int proxy_socket_tcp_recv(rad_listen_t *listener,
+				 RAD_REQUEST_FUNP *pfun, REQUEST **prequest)
+{
+	REQUEST		*request;
+	RADIUS_PACKET	*packet;
+	RAD_REQUEST_FUNP fun = NULL;
+	char		buffer[128];
+
+	packet = fr_tcp_recv(listener->fd, 0);
+	if (!packet) {
+		proxy_close_tcp_listener(listener);
+		return 0;
+	}
+
+	/*
+	 *	FIXME: Client MIB updates?
+	 */
+	switch(packet->code) {
+	case PW_AUTHENTICATION_ACK:
+	case PW_ACCESS_CHALLENGE:
+	case PW_AUTHENTICATION_REJECT:
+		fun = rad_authenticate;
+		break;
+
+#ifdef WITH_ACCOUNTING
+	case PW_ACCOUNTING_RESPONSE:
+		fun = rad_accounting;
+		break;
+#endif
+
+	default:
+		/*
+		 *	FIXME: Update MIB for packet types?
+		 */
+		radlog(L_ERR, "Invalid packet code %d sent to a proxy port "
+		       "from home server %s port %d - ID %d : IGNORED",
+		       packet->code,
+		       ip_ntoh(&packet->src_ipaddr, buffer, sizeof(buffer)),
+		       packet->src_port, packet->id);
+		rad_free(&packet);
+		return 0;
+	}
+
+	request = received_proxy_tcp_response(packet,
+					      fr_listen2tcp(listener));
+	if (!request) {
+		return 0;
+	}
+
+	rad_assert(fun != NULL);
+	*pfun = fun;
+	*prequest = request;
+
+	return 1;
+}
+#endif
+
 static int proxy_socket_encode(UNUSED rad_listen_t *listener, REQUEST *request)
 {
 	rad_encode(request->proxy, NULL, request->home_server->secret);
