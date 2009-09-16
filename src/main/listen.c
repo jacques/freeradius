@@ -1303,11 +1303,171 @@ void listen_free(rad_listen_t **head)
 
 	*head = NULL;
 
-	/*
-	 *	FIXME: Unlink the handles, too.
-	 */
+#ifdef WITH_TCP
+fr_tcp_radius_t *fr_listen2tcp(rad_listen_t *this)
+{
+	listen_socket_t *sock;
+
+	if (!this || (this->type != RAD_LISTEN_PROXY) || !this->data) {
+		return NULL;
+	}
+
+	sock = this->data;
+	return sock->tcp;
 }
 
+rad_listen_t *proxy_new_tcp_listener(home_server *home)
+{
+	int i;
+	fr_tcp_radius_t *tcp;
+	struct sockaddr_storage	src;
+	socklen_t sizeof_src = sizeof(src);
+	rad_listen_t *this;
+	listen_socket_t *sock;
+
+	if (!home ||
+	    ((home->max_connections > 0) &&
+	     (home->num_connections >= home->max_connections))) {
+		DEBUG("WARNING: Home server has too many open connections (%d)",
+		      home->max_connections);
+		return NULL;
+	}
+
+	this = NULL;
+
+	/*
+	 *	FIXME: Move to RBTrees.
+	 */
+	for (i = 0; i < home->max_connections; i++) {
+		if (home->listeners[i]) continue;
+
+		this = home->listeners[i] = listen_alloc(RAD_LISTEN_PROXY);
+		if (!this) {
+			DEBUG("WARNING: Failed allocating memory");
+			return NULL;
+		}
+		break;
+	}
+
+	if (!this) {
+		DEBUG("WARNING: Failed to find a free connection slot");
+		return NULL;
+	}
+	sock = this->data;
+
+	tcp = sock->tcp = rad_malloc(sizeof(*tcp));
+	memset(tcp, 0, sizeof(*tcp));
+
+	/*
+	 *	Initialize th
+	 *
+	 *	Open a new socket...
+	 *
+	 *	Do stuff...
+	 */
+	tcp->dst_ipaddr = home->ipaddr;
+	tcp->dst_port = home->port;
+	tcp->lifetime = home->lifetime;
+	tcp->opened = time(NULL);	
+
+	/*
+	 *	FIXME: connect() is blocking!
+	 *	We do this with the proxy mutex locked, which may
+	 *	cause large delays!
+	 *
+	 *	http://www.developerweb.net/forum/showthread.php?p=13486
+	 */
+	this->fd = tcp->fd = fr_tcp_client_socket(&tcp->dst_ipaddr, tcp->dst_port);
+	if (tcp->fd < 0) {
+		listen_free(&this);
+		DEBUG("WARNING: Failed opening socket to home server");
+		return NULL;
+	}
+	memset(&src, 0, sizeof_src);
+	if (getsockname(tcp->fd, (struct sockaddr *) &src, &sizeof_src) < 0) {
+		close(tcp->fd);
+		listen_free(&this);
+		return NULL;
+	}
+
+	if (!fr_sockaddr2ipaddr(&src, sizeof_src,
+				&tcp->src_ipaddr, &tcp->src_port)) {
+		close(tcp->fd);
+		listen_free(&this);
+		return NULL;
+	}
+
+	/*
+	 *	Fill in socket information.
+	 */
+	sock->proto = IPPROTO_TCP;
+	sock->tcp = tcp;
+
+	sock->ipaddr = tcp->src_ipaddr;
+	sock->port = tcp->src_port;
+
+	/*
+	 *	Don't ask.  Just don't ask.
+	 */
+	sock->src_ipaddr = tcp->dst_ipaddr;
+	sock->src_port = tcp->dst_port;
+	sock->home = home;
+	sock->home->num_connections++;
+
+	this->recv = proxy_socket_tcp_recv;
+
+	/*
+	 *	Tell the event handler about the new socket.
+	 *
+	 *	It keeps track of "this", so we don't have to insert
+	 *	it into the main list of listeners.
+	 */
+	event_new_fd(this);
+
+	return this;
+}
+
+void proxy_close_tcp_listener(rad_listen_t *listener)
+{
+	int i;
+	listen_socket_t *sock = listener->data;
+	
+	/*
+	 *	This is the second time around for the socket.  Free
+	 *	the memory now.
+	 */
+	if (listener->status != RAD_LISTEN_STATUS_KNOWN) {
+		listen_free(&listener);
+		return;
+	}
+
+	listener->status = RAD_LISTEN_STATUS_CLOSED;
+	event_new_fd(listener);
+	
+	/*
+	 *	Find the home server, and mark this listener as
+	 *	no longer being active.
+	 */
+	for (i = 0; i < sock->home->max_connections; i++) {
+		if (sock->home->listeners[i] == listener) {
+			sock->home->listeners[i] = NULL;
+			sock->home->num_connections--;
+			break;
+		}
+	}
+
+	/*
+	 *	There are still one or more requests using this socket.
+	 *	leave it marked as "closed", but don't free it.  When the
+	 *	last requeast using it is cleaned up, it will be deleted.
+	 */
+	if (sock->tcp->used > 0) return;
+	
+	listen_free(&listener);
+}
+#endif
+
+#ifdef WITH_STATS
 rad_listen_t *listener_find_byipaddr(const fr_ipaddr_t *ipaddr, int port)
 {
 	rad_listen_t *this;
