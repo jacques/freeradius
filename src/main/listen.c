@@ -1295,6 +1295,12 @@ void listen_free(rad_listen_t **head)
 		if (this->frs->free) {
 			this->frs->free(this);
 		}
+#ifdef WITH_TCP
+		if (this->type == RAD_LISTEN_PROXY) {
+			listen_socket_t *sock = this->data;
+			free(sock->tcp);
+		}
+#endif
 		free(this->data);
 		free(this);
 
