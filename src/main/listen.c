@@ -59,11 +59,13 @@ RADCLIENT *client_listener_find(const rad_listen_t *listener,
 	time_t now;
 	RADCLIENT *client;
 	RADCLIENT_LIST *clients;
+	listen_socket_t *sock;
 
 	rad_assert(listener != NULL);
 	rad_assert(ipaddr != NULL);
 
-	clients = ((listen_socket_t *)listener->data)->clients;
+	sock = listener->data;
+	clients = sock->clients;
 
 	/*
 	 *	This HAS to have been initialized previously.
@@ -72,7 +74,7 @@ RADCLIENT *client_listener_find(const rad_listen_t *listener,
 
 	client = client_find(clients, ipaddr
 #ifdef WITH_TCP
-			     , IPPROTO_UDP
+			     ,sock->proto
 #endif
 			     );
 	if (!client) {
@@ -97,10 +99,16 @@ RADCLIENT *client_listener_find(const rad_listen_t *listener,
 
 		listener->print(listener, name, sizeof(name));
 
-		radlog(L_ERR, "Ignoring request to %s from unknown client %s port %d",
-		       name, inet_ntop(ipaddr->af, &ipaddr->ipaddr,
-				       buffer, sizeof(buffer)),
-		       src_port);
+		radlog(L_ERR, "Ignoring request to %s from unknown client %s port %d"
+#ifdef WITH_TCP
+		       " proto %s"
+#endif
+		       , name, inet_ntop(ipaddr->af, &ipaddr->ipaddr,
+					 buffer, sizeof(buffer)), src_port
+#ifdef WITH_TCP
+		       , (sock->proto == IPPROTO_UDP) ? "udp" : "tcp"
+#endif
+		       );
 		return NULL;
 	}
 
@@ -148,7 +156,7 @@ RADCLIENT *client_listener_find(const rad_listen_t *listener,
 		 */
 		client = client_find(clients, ipaddr
 #ifdef WITH_TCP
-				     , IPPROTO_UDP
+				     , sock->proto
 #endif
 				     );
 
@@ -258,6 +266,79 @@ int listen_socket_print(rad_listen_t *this, char *buffer, size_t bufsize)
 	}
 #endif
 
+#ifdef WITH_TCP
+	if (sock->proto == IPPROTO_TCP) {
+		ADDSTRING(" proto tcp");
+	}
+
+	/*
+	 *	TCP sockets get printed a little differently, to make
+	 *	it clear what's going on.
+	 */
+	if (sock->client) {
+		ADDSTRING(" from client (");
+		ip_ntoh(&sock->src_ipaddr, buffer, bufsize);
+		FORWARD;
+
+		ADDSTRING(", ");
+		snprintf(buffer, bufsize, "%d", sock->src_port);
+		FORWARD;
+		ADDSTRING(") -> (");
+
+		if ((sock->ipaddr.af == AF_INET) &&
+		    (sock->ipaddr.ipaddr.ip4addr.s_addr == htonl(INADDR_ANY))) {
+			strlcpy(buffer, "*", bufsize);
+		} else {
+			ip_ntoh(&sock->ipaddr, buffer, bufsize);
+		}
+		FORWARD;
+		
+		ADDSTRING(", ");
+		snprintf(buffer, bufsize, "%d", sock->port);
+		FORWARD;
+
+		if (this->server) {
+			ADDSTRING(", virtual-server=");
+			ADDSTRING(this->server);
+		}
+
+		ADDSTRING(")");
+
+		return 1;
+	}
+
+	/*
+	 *	Maybe it's a socket that we opened to a home server.
+	 */
+	if ((sock->proto == IPPROTO_TCP) &&
+	    (this->type == RAD_LISTEN_PROXY)) {
+		ADDSTRING(" (");
+		ip_ntoh(&sock->src_ipaddr, buffer, bufsize);
+		FORWARD;
+
+		ADDSTRING(", ");
+		snprintf(buffer, bufsize, "%d", sock->src_port);
+		FORWARD;
+		ADDSTRING(") -> home_server (");
+
+		if ((sock->ipaddr.af == AF_INET) &&
+		    (sock->ipaddr.ipaddr.ip4addr.s_addr == htonl(INADDR_ANY))) {
+			strlcpy(buffer, "*", bufsize);
+		} else {
+			ip_ntoh(&sock->ipaddr, buffer, bufsize);
+		}
+		FORWARD;
+		
+		ADDSTRING(", ");
+		snprintf(buffer, bufsize, "%d", sock->port);
+		FORWARD;
+
+		ADDSTRING(")");
+
+		return 1;
+	}
+#endif
+
 	ADDSTRING(" address ");
 	
 	if ((sock->ipaddr.af == AF_INET) &&
@@ -328,6 +409,43 @@ int listen_socket_parse(CONF_SECTION *cs, rad_listen_t *this)
 			cf_log_err(cf_sectiontoitem(cs),
 				   "Invalid value for \"port\"");
 			return -1;
+	}
+
+#ifdef WITH_TCP
+	sock->proto = IPPROTO_UDP;
+#endif
+
+	if (cf_pair_find(cs, "proto")) {
+#ifndef WITH_TCP
+		cf_log_err(cf_sectiontoitem(cs),
+			   "System does not support the TCP protocol.  Delete this line from the configuration file.");
+		return -1;
+#else
+		char *proto = NULL;
+
+
+		rcode = cf_item_parse(cs, "proto", PW_TYPE_STRING_PTR,
+				      &proto, "udp");
+		if (rcode < 0) return -1;
+
+		if (strcmp(proto, "udp") == 0) {
+			sock->proto = IPPROTO_UDP;
+
+		} else if (strcmp(proto, "tcp") == 0) {
+			sock->proto = IPPROTO_TCP;
+
+			rcode = cf_item_parse(cs, "max_connections", PW_TYPE_INTEGER,
+					      &sock->max_connections, "64");
+			if (rcode < 0) return -1;
+
+		} else {
+			cf_log_err(cf_sectiontoitem(cs),
+				   "Unknown proto name \"%s\"", proto);
+			free(proto);
+			return -1;
+		}
+		free(proto);
+#endif
 	}
 
 	sock->ipaddr = ipaddr;
@@ -433,6 +551,13 @@ int listen_socket_parse(CONF_SECTION *cs, rad_listen_t *this)
 		return -1;
 	}
 
+#ifdef WITH_TCP
+	if (sock->proto == IPPROTO_TCP) {
+		cf_log_err(cf_sectiontoitem(cs), "TCP is not yet finished");
+		return -1;
+	}
+#endif
+
 	return 0;
 }
 
@@ -446,6 +571,25 @@ static int listen_bind(rad_listen_t *this)
 	struct sockaddr_storage salocal;
 	socklen_t	salen;
 	listen_socket_t *sock = this->data;
+#ifndef WITH_TCP
+#define proto_for_port "udp"
+#define sock_type SOCK_DGRAM
+#else
+	const char *proto_for_port = "udp";
+	int sock_type = SOCK_DGRAM;
+	
+	if (sock->proto == IPPROTO_TCP) {
+#ifdef WITH_VMPS
+		if (this->type == RAD_LISTEN_VQP) {
+			radlog(L_ERR, "VQP does not support TCP transport");
+			return -1;
+		}
+#endif
+
+		proto_for_port = "tcp";
+		sock_type = SOCK_STREAM;	
+	}
+#endif
 
 	/*
 	 *	If the port is zero, then it means the appropriate
@@ -456,7 +600,7 @@ static int listen_bind(rad_listen_t *this)
 
 		switch (this->type) {
 		case RAD_LISTEN_AUTH:
-			svp = getservbyname ("radius", "udp");
+			svp = getservbyname ("radius", proto_for_port);
 			if (svp != NULL) {
 				sock->port = ntohs(svp->s_port);
 			} else {
@@ -466,7 +610,7 @@ static int listen_bind(rad_listen_t *this)
 
 #ifdef WITH_ACCOUNTING
 		case RAD_LISTEN_ACCT:
-			svp = getservbyname ("radacct", "udp");
+			svp = getservbyname ("radacct", proto_for_port);
 			if (svp != NULL) {
 				sock->port = ntohs(svp->s_port);
 			} else {
@@ -501,7 +645,7 @@ static int listen_bind(rad_listen_t *this)
 	/*
 	 *	Copy fr_socket() here, as we may need to bind to a device.
 	 */
-	this->fd = socket(sock->ipaddr.af, SOCK_DGRAM, 0);
+	this->fd = socket(sock->ipaddr.af, sock_type, 0);
 	if (this->fd < 0) {
 		radlog(L_ERR, "Failed opening socket: %s", strerror(errno));
 		return -1;
@@ -528,6 +672,22 @@ static int listen_bind(rad_listen_t *this)
 	}
 #endif
 
+#ifdef WITH_TCP
+	if (sock->proto == IPPROTO_TCP) {
+		int on = 1;
+
+		if (setsockopt(this->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
+			close(this->fd);
+			radlog(L_ERR, "Failed to reuse address: %s", strerror(errno));
+			return -1;
+		}
+	}
+#endif
+
+#if defined(WITH_TCP) && defined(WITH_UDPFROMTO)
+	else			/* UDP sockets get UDPfromto */
+#endif
+
 #ifdef WITH_UDPFROMTO
 	/*
 	 *	Initialize udpfromto for all sockets.
@@ -537,7 +697,7 @@ static int listen_bind(rad_listen_t *this)
 		return -1;
 	}
 #endif
-	
+
 	/*
 	 *	Set up sockaddr stuff.
 	 */
@@ -631,6 +791,16 @@ static int listen_bind(rad_listen_t *this)
 		}
 	}
 
+#ifdef WITH_TCP
+	if (sock->proto == IPPROTO_TCP) {
+		if (listen(this->fd, 8) < 0) {
+			close(this->fd);
+			radlog(L_ERR, "Failed in listen(): %s", strerror(errno));
+			return -1;
+		}
+	} else
+#endif
+
 #ifdef O_NONBLOCK
 	{
 		int flags;
@@ -649,6 +819,12 @@ static int listen_bind(rad_listen_t *this)
 		}
 	}
 #endif
+
+/*
+ *	Don't screw up other people.
+ */
+#undef proto_for_port
+#undef sock_type
 
 	return 0;
 }
