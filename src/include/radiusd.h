@@ -556,14 +556,9 @@ void fr_suid_down_permanent(void);
 /* listen.c */
 void listen_free(rad_listen_t **head);
 int listen_init(CONF_SECTION *cs, rad_listen_t **head);
-rad_listen_t *proxy_new_listener(fr_ipaddr_t *ipaddr, int exists);
+int proxy_new_listener(home_server *home, int src_port);
 RADCLIENT *client_listener_find(const rad_listen_t *listener,
 				const fr_ipaddr_t *ipaddr, int src_port);
-#ifdef WITH_TCP
-fr_tcp_radius_t *fr_listen2tcp(rad_listen_t *this);
-rad_listen_t *proxy_new_tcp_listener(home_server *home);
-void proxy_close_tcp_listener(rad_listen_t *listener);
-#endif
 
 #ifdef WITH_STATS
 rad_listen_t *listener_find_byipaddr(const fr_ipaddr_t *ipaddr, int port);
@@ -579,10 +574,6 @@ int received_request(rad_listen_t *listener,
 		     RADCLIENT *client);
 REQUEST *received_proxy_response(RADIUS_PACKET *packet);
 void event_new_fd(rad_listen_t *listener);
-#ifdef WITH_TCP
-REQUEST *received_proxy_tcp_response(RADIUS_PACKET *packet,
-				     fr_tcp_radius_t *tcp);
-#endif
 
 /* evaluate.c */
 int radius_evaluate_condition(REQUEST *request, int modreturn, int depth,
