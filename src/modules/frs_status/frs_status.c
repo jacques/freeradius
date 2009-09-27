@@ -274,10 +274,8 @@ static void request_stats_reply(REQUEST *request)
 		if (vp) {
 			ipaddr.af = AF_INET;
 			ipaddr.ipaddr.ip4addr.s_addr = vp->vp_ipaddr;
-#ifndef WITH_TCP
-			client = client_find(cl, &ipaddr);
-#else
 			client = client_find(cl, &ipaddr, IPPROTO_UDP);
+#ifdef WITH_TCP
 			if (!client) {
 				client = client_find(cl, &ipaddr, IPPROTO_TCP);
 			}
