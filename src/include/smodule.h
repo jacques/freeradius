@@ -129,9 +129,9 @@ typedef struct listen_socket_t {
 	const char	*interface;
 #endif
 
-#ifdef WITH_TCP
 	int		proto;
 
+#ifdef WITH_TCP
 	int		max_connections;
 	int		num_connections;
 	struct listen_socket_t *parent;
