@@ -1090,6 +1090,8 @@ static void no_response_to_proxied_request(void *ctx)
 #endif
 		check_for_zombie_home_server(request);
 
+	home = request->home_server;
+
 	/*
 	 *	The default as of 2.1.7 is to allow requests to
 	 *	fail-over to a backup home server when this one does
@@ -1106,8 +1108,6 @@ static void no_response_to_proxied_request(void *ctx)
 
 		post_proxy_fail_handler(request);
 	}
-
-	home = request->home_server;
 
 	/*
 	 *	Don't touch request due to race conditions
