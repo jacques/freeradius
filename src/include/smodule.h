@@ -128,6 +128,9 @@ typedef struct listen_socket_t {
 #ifdef SO_BINDTODEVICE
 	const char	*interface;
 #endif
+#ifdef SO_BROADCAST
+	int		broadcast;
+#endif
 
 	int		proto;
 
