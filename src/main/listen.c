@@ -1436,10 +1436,7 @@ add_sockets:
 		/*
 		 *	
 		 */
-#ifdef WITH_TCP
 		home.proto = IPPROTO_UDP;
-#endif
-		
 		home.src_ipaddr = server_ipaddr;
 
 		/*
