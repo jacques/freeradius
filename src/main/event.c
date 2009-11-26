@@ -380,7 +380,7 @@ retry:
 		 *	don't support recursive mutexes.
 		 */
 		if (!proxy_new_listener(request->home_server, 0)) {
-			RDEBUG2("ERROR: Failed to create a new socket for proxying requests.");
+			radlog(L_ERR, "Failed to create a new socket for proxying requests.");
 			return 0;
 		}
 		request->proxy->src_port = 0; /* Use any new socket */
@@ -650,7 +650,7 @@ static void no_response_to_ping(void *ctx)
 
 	home->num_received_pings = 0;
 
-	RDEBUG2("No response to status check %d from home server %s port %d",
+	radlog(L_ERR, "No response to status check %d for home server %s port %d",
 	       request->number,
 	       inet_ntop(request->proxy->dst_ipaddr.af,
 			 &request->proxy->dst_ipaddr.ipaddr,
@@ -677,7 +677,7 @@ static void received_response_to_ping(REQUEST *request)
 
 	home->num_received_pings++;
 
-	RDEBUG2("Received response to status check %d (%d in current sequence)",
+	radlog(L_PROXY, "Received response to status check %d (%d in current sequence)",
 	       request->number, home->num_received_pings);
 
 	/*
@@ -711,7 +711,7 @@ static void received_response_to_ping(REQUEST *request)
 		RDEBUG2("Hmm... no event for home server.  Oh well.");
 	}
 
-	radlog(L_INFO, "PROXY: Marking home server %s port %d alive",
+	radlog(L_PROXY, "Marking home server %s port %d alive",
 	       inet_ntop(request->proxy->dst_ipaddr.af,
 			 &request->proxy->dst_ipaddr.ipaddr,
 			 buffer, sizeof(buffer)),
@@ -3303,7 +3303,7 @@ void event_new_fd(rad_listen_t *this)
 		if (just_started) {
 			DEBUG("Listening on %s", buffer);
 		} else {
-			DEBUG2(" ... adding new socket %s", buffer);
+			radlog(L_INFO, " ... adding new socket %s", buffer);
 		}
 
 #ifdef WITH_PROXY
@@ -3548,7 +3548,7 @@ finish:
 		listen_socket_t *sock = this->data;
 
 		rad_assert(this->count == 0);
-		DEBUG2(" ... closing socket %s", buffer);
+		radlog(L_INFO, " ... closing socket %s", buffer);
 
 		/*
 		 *	Remove it from the list of live FD's.  Note
@@ -3612,7 +3612,7 @@ static void handle_signal_self(int flag)
 		time_t when;
 		static time_t last_hup = 0;
 
-		DEBUG("Received HUP signal.");
+		radlog(L_INFO, "Received HUP signal.");
 
 		when = time(NULL);
 		if ((int) (when - last_hup) < 5) {
@@ -3838,7 +3838,7 @@ static void event_status(struct timeval *wake)
 	}
 
 	if (!wake) {
-		DEBUG("Ready to process requests.");
+		radlog(L_INFO, "Ready to process requests.");
 
 	} else if ((wake->tv_sec != 0) ||
 		   (wake->tv_usec >= 100000)) {
