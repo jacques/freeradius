@@ -65,7 +65,7 @@ void request_stats_final(REQUEST *request)
 	 *	deleted, because only the main server thread calls
 	 *	this function, which makes it thread-safe.
 	 */
-	switch (request->reply->code) {
+	if (request->reply) switch (request->reply->code) {
 	case PW_AUTHENTICATION_ACK:
 		radius_auth_stats.total_responses++;
 		radius_auth_stats.total_access_accepts++;
