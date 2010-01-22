@@ -2573,7 +2573,7 @@ static const char *cf_pair_print_value(const CONF_PAIR *cp,
 }
 
 
-int cf_pair2xml(FILE *fp, CONF_PAIR *cp)
+int cf_pair2xml(FILE *fp, const CONF_PAIR *cp)
 {
 	fprintf(fp, "<%s>", cp->attr);
 	if (cp->value) {
@@ -2610,7 +2610,7 @@ int cf_pair2xml(FILE *fp, CONF_PAIR *cp)
 	return 1;
 }
 
-int cf_section2xml(FILE *fp, CONF_SECTION *cs)
+int cf_section2xml(FILE *fp, const CONF_SECTION *cs)
 {
 	CONF_ITEM *ci, *next;
 
@@ -2648,7 +2648,7 @@ int cf_section2xml(FILE *fp, CONF_SECTION *cs)
 	return 1;		/* success */
 }
 
-int cf_pair2file(FILE *fp, CONF_PAIR *cp)
+int cf_pair2file(FILE *fp, const CONF_PAIR *cp)
 {
 	char buffer[2048];
 
@@ -2658,9 +2658,9 @@ int cf_pair2file(FILE *fp, CONF_PAIR *cp)
 	return 1;
 }
 
-int cf_section2file(FILE *fp, CONF_SECTION *cs)
+int cf_section2file(FILE *fp, const CONF_SECTION *cs)
 {
-	CONF_ITEM *ci, *next;
+	const CONF_ITEM *ci, *next;
 
 	/*
 	 *	Section header
