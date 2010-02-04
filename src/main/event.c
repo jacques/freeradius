@@ -3429,6 +3429,12 @@ void event_new_fd(rad_listen_t *this)
 		fr_event_fd_delete(el, 0, this->fd);
 		FD_MUTEX_UNLOCK(&fd_mutex);
 
+#ifdef WITH_TCP
+		/*
+		 *	We track requests using this socket only for
+		 *	TCP.  For UDP, we don't currently close
+		 *	sockets.
+		 */
 #ifdef WITH_PROXY
 		if (this->type != RAD_LISTEN_PROXY)
 #endif
@@ -3476,7 +3482,8 @@ void event_new_fd(rad_listen_t *this)
 				goto finish;
 			}
 		}
-#endif
+#endif	/* WITH_PROXY */
+#endif	/* WITH_TCP */
 
 		/*
 		 *      Re-open the socket, pointing it to /dev/null.
@@ -3512,6 +3519,7 @@ void event_new_fd(rad_listen_t *this)
 		 */
 	}
 
+#ifdef WITH_TCP
 	/*
 	 *	Called ONLY from the main thread.  On the following
 	 *	conditions:
@@ -3623,6 +3631,9 @@ finish:
 		 */
 		listen_free(&this);
 	}
+#endif	/* WITH_TCP */
+
+	return 1;
 }
 
 static void handle_signal_self(int flag)
@@ -3683,6 +3694,7 @@ static void handle_signal_self(int flag)
 	}
 #endif
 
+#ifdef WITH_TCP
 #ifdef WITH_PROXY
 	/*
 	 *	Add event handlers for idle timeouts && maximum lifetime.
@@ -3726,7 +3738,8 @@ static void handle_signal_self(int flag)
 
 		PTHREAD_MUTEX_UNLOCK(&proxy_mutex);
 	}
-#endif
+#endif	/* WITH_PROXY */
+#endif	/* WITH_TCP */
 }
 
 #ifdef __MINGW32__
