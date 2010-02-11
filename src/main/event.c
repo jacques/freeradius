@@ -3632,8 +3632,6 @@ finish:
 		listen_free(&this);
 	}
 #endif	/* WITH_TCP */
-
-	return 1;
 }
 
 static void handle_signal_self(int flag)
