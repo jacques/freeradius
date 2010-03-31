@@ -13,6 +13,7 @@ HEADERS	= autoconf.h conf.h conffile.h detail.h dhcp.h event.h hash.h heap.h \
 include ../../Make.inc
 .PHONY: all clean distclean install
 
+.PHONY: all clean distclean install reconfig
 all: radpaths.h
 
 radpaths.h: build-radpaths-h
@@ -21,6 +22,7 @@ radpaths.h: build-radpaths-h
 distclean:
 	rm -f radpaths.h
 
+reconfig clean:
 dict:
 	@mkdir dict
 	@for x in ../../share/dictionary*; do \
