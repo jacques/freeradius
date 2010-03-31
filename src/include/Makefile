@@ -23,6 +23,7 @@ distclean:
 	rm -f radpaths.h
 
 reconfig clean:
+
 dict:
 	@mkdir dict
 	@for x in ../../share/dictionary*; do \
