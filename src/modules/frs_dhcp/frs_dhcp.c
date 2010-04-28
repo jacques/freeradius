@@ -30,7 +30,7 @@
 #ifdef WITH_DHCP
 
 /*
- *	Same layout, etc. as listen_socket_t.
+ *	Same contents as listen_socket_t.
  */
 typedef struct dhcp_socket_t {
 	/*
@@ -38,9 +38,12 @@ typedef struct dhcp_socket_t {
 	 */
 	fr_ipaddr_t	ipaddr;
 	int		port;
-#ifdef SO_BINDTODEVICE
-	const char	*interface;
-#endif
+	const char		*interface;
+	RADCLIENT_LIST	*clients;
+
+	/*
+	 *	DHCP-specific additions.
+	 */  
 	int		suppress_responses;
 	RADCLIENT	dhcp_client;
 } dhcp_socket_t;
