@@ -1,8 +1,9 @@
-  HOW TO ISSUE A RELEASE
+HOW TO ISSUE A RELEASE
+======================
 
 
-	As of 2.0, the release process is much simpler.  Edit the
-	Changelog with the version number and any last updates.
+As of 2.0, the release process is much simpler.  Edit the
+Changelog with the version number and any last updates.
 
 vi doc/ChangeLog
 cvs commit doc/ChangeLog

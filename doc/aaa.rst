@@ -1,10 +1,9 @@
 How Authorization, Authentication, and Accounting requests are handled
-----------------------------------------------------------------------
+======================================================================
 
 There are a lot of questions about misconfigured FreeRADIUS servers
 because of misunderstanding of FreeRADIUS operations.  This document
 explains how the server operates.
-
 
 Normally there are 2 steps in processing authentication request coming
 from NAS in FreeRADIUS (plus additional steps to proxy request if we
@@ -12,6 +11,7 @@ use FreeRADIUS as a proxy): authorization and authentication.
 
 
 AUTHORIZATION
+-------------
 
 Authorization is a process of obtaining information about the user
 from external source (file, database or LDAP), and checking that the
@@ -27,6 +27,7 @@ them the ability to use that kind of authentication.
 
 
 AUTHENTICATION
+--------------
 
 Authentication is simply a process of comparing user's credentials in
 request with credentials stored in database.  Authentication usually
@@ -43,6 +44,7 @@ passwords to access an SQL server.
 
 
 PROCESSING A REQUEST
+--------------------
 
 During authorization and authentication processes, there are 3 lists
 of RADIUS attributes supported by FreeRADIUS: request items, config
@@ -96,7 +98,3 @@ value of 'MS-CHAP' into same list.  The same goes for NT-Password
 (before calling MS-CHAP Password attribute should be converted to
 NT-Password, it may be achieved by calling mschap module in
 authorization section after module which does actual authorization).
-
-
-$Date$
-by 3APA3A <3APA3A@SECURITY.NNOV.RU>
