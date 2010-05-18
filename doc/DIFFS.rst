@@ -142,7 +142,7 @@ have a really good reason for doing so.
    1. Read the Documentation and follow the CodingStyle 
 
       The FreeRADIUS server has a common coding style.  Use real tabs
-	  to indent.  There is whitespace in variable assignments.
+      to indent.  There is whitespace in variable assignments.
       (i = 1, NOT i=1).
 
       When in doubt, format your code to look the same as code already
@@ -158,7 +158,7 @@ have a really good reason for doing so.
       are used in the code. Let the compiler optimize away the "no-op"
       case.
 
-      Simple example, of poor code: 
+      Simple example, of poor code:: 
 
            #ifdef CONFIG_MY_FUNKINESS 
                  init_my_stuff(foo);
@@ -166,17 +166,15 @@ have a really good reason for doing so.
 
       Cleaned-up example: 
 
-      (in header) 
+      (in header):: 
 
            #ifndef CONFIG_MY_FUNKINESS
            static inline void init_my_stuff(char *foo) {}
            #endif 
 
-      (in the code itself) 
+      (in the code itself):: 
 
-	   ...
            init_my_stuff(dev); 
-	   ...
 
    3. 'static inline' is better than a macro 
 
