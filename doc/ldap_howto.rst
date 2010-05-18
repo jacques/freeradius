@@ -1,5 +1,5 @@
-Freeradius OpenLDAP HOWTO
-=========================
+LDAP Configuration
+==================
 
 This document describes how to setup Freeradius on a Freebsd machine
 using LDAP as a backend.  This is by no means complete and your
@@ -1014,20 +1014,20 @@ The first thing that is done is authorization of the user.  The radius server
 will process the modules in the order specified in the authorization section of
 radiusd.conf.  Currently, they are in the following order.
 
-preprocess
-suffix
-files
-ldap
+1) preprocess
+2) suffix
+3) files
+4) ldap
 
 The first module will be preprocess.  This will first check the huntgroups of
 the user coming in.  The huntgroups are defined in the file huntgroups and they
 are a group listing of the NAS-IP-Addresses that make the access_request.  This
 is useful in creating specific actions based on the NAS-IP that the request is
-made from.  An example, is below:
+made from.  An example, is below::
 
-isdncombo       NAS-IP-Address == 10.10.10.1
-dialup          NAS-IP-Address == 10.10.10.2
-dialup          NAS-IP-Address == 10.10.10.3
+    isdncombo       NAS-IP-Address == 10.10.10.1
+    dialup          NAS-IP-Address == 10.10.10.2
+    dialup          NAS-IP-Address == 10.10.10.3
 
 We will have one NAS that is used for both ISDN and regular dialup customers,
 the other NAS's will be only used for dialup.
@@ -1110,8 +1110,8 @@ An example users file is below::
     User-Profile := "uid=isdn,ou=profiles,ou=radius,dc=mydomain,dc=com"
             Fall-Through = no
 
-    DEFAULT Huntgroup-Name == dial, Ldap-Group == dial, User-Profile := "uid=dial,ou
-    =profiles,ou=radius,dc=mydomain,dc=com"
+    DEFAULT Huntgroup-Name == dial, Ldap-Group == dial,
+    User-Profile := "uid=dial,ou=profiles,ou=radius,dc=mydomain,dc=com"
             Fall-Through = no
 
     DEFAULT Auth-Type := Reject
@@ -1339,8 +1339,7 @@ edit /usr/local/etc/openldap/slapd.conf
     ----End slapd.conf----
 
 
-To create a rootdn that is not stored in plain text, enter the following
-command::
+To create a rootdn that is not stored in plain text, enter the following command::
 
     $ slappasswd
 
@@ -1815,27 +1814,35 @@ OTHER RANDOM NOTES AND THOUGHTS
 -------------------------------
 
 The client programs used to connect to the ldap directory are:
- -ldapadd to add a record
- -ldapmodify to modify a record
- -ldapdelete to delete a record
- -ldapsearch to search for a record
- -slapcat to show the entire directory
- -slappaswd to generate a crypted password
+
+ldapadd:
+    to add a record
+ldapmodify:
+    to modify a record
+ldapdelete:
+    to delete a record
+ldapsearch:
+    to search for a record
+slapcat:
+    to show the entire directory
+slappaswd:
+    to generate a crypted password
 
 Read the man pages on those commands, they tell you everything you
 need to know.
 
 They all follow this basic syntax::
 
-    $ ldapwhatever -D "uid=someone,ou=admins,ou=radius,dc=mydomain,dc=com" -w
-    thesecret -andthenotherstuff
+    $ ldapwhatever -D "uid=someone,ou=admins,ou=radius,dc=mydomain,dc=com" -w thesecret -andthenotherstuff
 
 Finally, if you are having trouble with LDAP, run it in debug mode by
-changing the following in slapd.sh:
+changing the following in slapd.sh::
 
-slapd_args=
-to
-slapd_args= '-d 3'
+    slapd_args=
+
+to::
+
+    slapd_args= '-d 3'
 
 There is a program included with freeradius to test the radius server,
 its called radclient.  Typing it alone will tell you all the options.
@@ -1870,35 +1877,24 @@ LINKS
 FREERADIUS
 ++++++++++
 
-Main Site:
- -http://www.freeradius.org
-Documentation:
- -http://www.freeradius.org/radiusd/doc
+* _`FreeRADIUS`: http://www.freeradius.org
+* _`FreeRADIUS Documentation`: http://www.freeradius.org/radiusd/doc
+* _`FreeRADIUS Wiki`: http://wiki.freeradius.org/
 
 OPENLDAP
 ++++++++
 
-Main Site
- -http://www.openldap.org
-Documentation: Administrator's Guide
- -http://www.openldap.org/doc/admin21
+* _`OpenLDAP`: http://www.openldap.org
+* _`OpenLDAP Administrator's Guide`: http://www.openldap.org/doc/admin21
 
 RFCs
 ++++
 
-RFC2865: RADIUS Authentication
- -http://www.freeradius.org/radiusd/doc/rfc/rfc2865.txt
-RFC2866: RADIUS Accounting
- -http://www.freeradius.org/radiusd/doc/rfc/rfc2866.txt
-RFC2869: RADIUS Extentions
- -http://www.freeradius.org/radiusd/doc/rfc/rfc2869.txt
-RFC2251: LDAP v3
- -http://www.ietf.org/rfc/rfc2251.txt
-RFC2252: LDAP v3 Attribute Syntax Definitions
- -http://www.ietf.org/rfc/rfc2252.txt
-RFC2253: LDAP UTF-8 String Representation of Distinguishe d Names (DNs)
- -http://www.ietf.org/rfc/rfc2252.txt
-RFC2849: LDAP Data Interchange Fromat (LDIFs)
- -http://www.ietf.org/rfc/rfc2849.txt
-RFC3377: LDAP v3 Technical Specs
- -http://www.ietf.org/rfc/rfc3377.txt
+* _`RFC2865: RADIUS Authentication`: http://www.freeradius.org/radiusd/doc/rfc/rfc2865.txt
+* _`RFC2866: RADIUS Accounting`: http://www.freeradius.org/radiusd/doc/rfc/rfc2866.txt
+* _`RFC2869: RADIUS Extentions`: http://www.freeradius.org/radiusd/doc/rfc/rfc2869.txt
+* _`RFC2251: LDAP v3`: http://www.ietf.org/rfc/rfc2251.txt
+* _`RFC2252: LDAP v3 Attribute Syntax Definitions`: http://www.ietf.org/rfc/rfc2252.txt
+* _`RFC2253: LDAP UTF-8 String Representation of Distinguishe d Names (DNs)`: http://www.ietf.org/rfc/rfc2252.txt
+* _`RFC2849: LDAP Data Interchange Fromat (LDIFs)`: http://www.ietf.org/rfc/rfc2849.txt
+* _`RFC3377: LDAP v3 Technical Specs`: http://www.ietf.org/rfc/rfc3377.txt

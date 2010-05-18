@@ -7,8 +7,12 @@
    :maxdepth: 2
 
    aaa
-   release-method
    ldap_howto
+   load-balance
+
+   coding-methods
+   DIFFS
+   release-method
 
 Indices and tables
 ==================

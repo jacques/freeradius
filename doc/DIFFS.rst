@@ -1,4 +1,5 @@
-	Submitting patches or diff's to the FreeRADIUS project
+Submitting patches or diff's to the FreeRADIUS project
+======================================================
 
 For a person or company wishing to submit a change to the
 FreeRADIUS project, the process can sometimes be daunting if you're
@@ -7,6 +8,7 @@ suggestions which can greatly increase the chances of your change
 being accepted.
 
 SECTION 1 - CREATING AND SENDING YOUR CHANGE 
+--------------------------------------------
 
    1. "diff -u" 
 
@@ -131,6 +133,7 @@ SECTION 1 - CREATING AND SENDING YOUR CHANGE
       When in doubt, re-submit.
 
 SECTION 2 - HINTS, TIPS, AND TRICKS 
+-----------------------------------
 
 This section lists many of the common "rules" associated with code
 submitted to the project. There are always exceptions... but you must
